@@ -54,5 +54,35 @@ HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
   --diagnosis-dir runs/diagnose-mtp-001 --output runs/probe-mtp-head-001
 ```
 
-新探针的 CPU 测试覆盖调优记录恢复、临时配置恢复及分叉位置对齐；GPU 路径待云端执行。
+用户随后反馈 `runs/probe-mtp-head-001` 完成并恢复了全部 15 条调优记录。
+在这次英文分叉上，每份冻结 hidden 的单行、四行、统一配置投影的全部 logits
+逐值相同；MTP hidden 重投影也完全重现捕获的 target logits。
+但 raw / MTP hidden 的 5120 个值中有 4359 个不同，最大绝对差 0.125，平均绝对差
+约 0.01319。证据将本次偏差定位到 head 之前；不能据此推广为所有输入的 head 等价性。
+
+下一步使用 `trace_verify.py` 从相同的 target 状态和输入定位最早观察到差值的算子：
+
+1. 比较 raw / MTP prefill 后的 hidden、KV 有效前缀、live recurrent state 和 conv ring。
+   若这里已经不同，先报告 prefill 差异。
+2. 按诊断保存的 MTP block 顺序，从 raw 的已提交前缀恢复同一份状态快照，分别逐 token
+   和一次四行计算相同输入（committed token 与实际 drafts）。记录 norm、量化投影、
+   GDN、attention 和 MLP 激活；split-K partials 按 token 轴对齐。
+   batch 保留被拒绝的 draft 尾部，但只根据原步骤实际输出对应的行选择分叉位置。
+3. 找到第一个存在差值的 block 后，分别测试 GDN 使用整个 value head（`BV=V`）、
+   target 多行量化算子使用单行的调优配置，以及同时使用这两项设置。
+   每组都恢复同一个初始状态，临时设置退出后恢复。
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+/root/venvs/swift-decode/bin/python -u -m experiments.trace_verify \
+  --diagnosis-dir runs/diagnose-mtp-001 --output runs/trace-verify-001
+```
+
+终端打印最早差值和各控制组摘要，完整算子差值保存在新目录的 `trace.json`。
+这是固定输入的 eager 算术诊断，会同步并复制激活到 CPU，不测性能。
+它隔离同一初始状态下批量计算的影响；后续 block 使用 raw 前缀状态，不能替代对
+MTP 实际提交后的全部状态内容的检查，也不能单凭一个算子的差值宣称根因已确认。
+引擎、算子和 MTP 算法仍是上游实现，本仓库新增的是复现实验与诊断入口。
+
+本地 CPU 测试覆盖输入／输出行对齐、缓存干预及追踪 hook 的恢复；算子数值仍需云端验证。
 原 gate 仍失败，benchmark 仍未运行。
