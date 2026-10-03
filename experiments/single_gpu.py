@@ -15,6 +15,7 @@ import sys
 import time
 
 from .measurement import compare_outputs, measure, summarize
+from .numerics import kernel_mode
 from .provenance import (ROOT, check_gpu_environment, checkpoint_manifest, command,
                          environment, object_hash, runtime_fingerprint,
                          snapshot_sources, source_fingerprint)
@@ -50,6 +51,8 @@ def parser():
     p.add_argument("--check-env", action="store_true", help="check pinned packages and a CUDA matmul, then exit")
     p.add_argument("--plan", action="store_true", help="print the plan without CUDA, downloads or output files")
     p.add_argument("--stage", choices=("gate", "bench"), default="gate")
+    p.add_argument("--bench-kernels", choices=("normal", "consistent"), default="normal",
+                   help="planned benchmark policy, recorded in both gate and bench; consistent requires exact gate outputs")
     p.add_argument("--model", help="local packed checkpoint directory; never a Hub repo id")
     p.add_argument("--draft-model", help="local DFlash2 directory, required only for dflash mode")
     p.add_argument("--modes", default="eager,graph,mtp")
@@ -94,7 +97,7 @@ def validate(args):
 
 
 def configuration(args, modes, prompts):
-    return {"protocol": 1, "sources": source_fingerprint(),
+    return {"protocol": 2, "sources": source_fingerprint(), "bench_kernels": args.bench_kernels,
             "model": checkpoint_manifest(args.model),
             "draft": checkpoint_manifest(args.draft_model, packed=False) if "dflash" in modes else None,
             "modes": sorted(modes), "prompts": prompts, "backend": args.backend, "kv": args.kv,
@@ -108,14 +111,37 @@ def check_gate(path, signature, runtime=None):
     if gate.get("stage") != "gate" or gate.get("status") != "passed":
         raise ValueError("the supplied gate did not pass")
     if gate.get("configuration_sha256") != signature:
-        raise ValueError("gate configuration differs: code, checkpoint, prompts or generation parameters changed")
+        raise ValueError("gate configuration differs: code, checkpoint, prompts, generation parameters or benchmark kernels changed")
     if runtime is not None and gate.get("runtime_sha256") != runtime:
         raise ValueError("gate environment differs: rerun the gate on this GPU / driver / Python stack")
 
 
+def read_gate_references(path, prompt_ids):
+    """Read the successful gate's graph round 0 without editing its evidence."""
+    references = {}
+    for line in (Path(path) / "graph.jsonl").read_text().splitlines():
+        row = json.loads(line)
+        if not isinstance(row, dict):
+            raise ValueError("invalid graph reference record in the saved gate")
+        if row.get("phase") != "measure" or row.get("round") != 0:
+            continue
+        prompt = row.get("prompt_id")
+        if row.get("mode") != "graph" or prompt not in prompt_ids or prompt in references:
+            raise ValueError("invalid or duplicate graph reference in the saved gate")
+        for key in ("prompt_token_ids", "token_ids"):
+            ids = row.get(key)
+            if not isinstance(ids, list) or not ids or any(type(t) is not int or t < 0 for t in ids):
+                raise ValueError(f"invalid {key} in the saved gate reference")
+        references[prompt] = {key: row[key] for key in ("prompt_token_ids", "token_ids")}
+    if set(references) != set(prompt_ids):
+        raise ValueError("saved gate references are incomplete")
+    return references
+
+
 def child_command(args, mode, output):
     cmd = [sys.executable, "-u", "-m", "experiments.single_gpu", "--worker-mode", mode,
-           "--stage", args.stage, "--model", str(Path(args.model).expanduser().resolve()),
+           "--stage", args.stage, "--bench-kernels", args.bench_kernels,
+           "--model", str(Path(args.model).expanduser().resolve()),
            "--modes", args.modes, "--backend", args.backend, "--kv", args.kv,
            "--mtp-depth", str(args.mtp_depth), "--tokens", str(args.tokens),
            "--max-len", str(args.max_len), "--chunk", str(args.chunk),
@@ -147,7 +173,7 @@ def worker(args, modes, prompts):
                         result = measure(lambda: adapter.prime(ids), adapter.step, torch.cuda.synchronize,
                                          args.tokens, adapter.stop_ids if args.respect_eos else ())
                         result.update(mode=args.worker_mode, prompt_id=name, prompt_token_ids=ids,
-                                      phase=phase, round=repeat)
+                                      phase=phase, round=repeat, execution_options=adapter.execution_options)
                         result["stats"].update(peak_allocated_bytes=torch.cuda.max_memory_allocated(),
                                                peak_reserved_bytes=torch.cuda.max_memory_reserved())
                         result["text"] = adapter.tokenizer.decode(result["token_ids"])
@@ -174,14 +200,22 @@ def run_child(cmd, log_path, timeout):
 def suite(args, modes, prompts):
     cfg = configuration(args, modes, prompts)
     signature = object_hash(cfg)
+    prompt_ids = [p["id"] for p in prompts]
+    strict_bench = args.stage == "bench" and args.bench_kernels == "consistent"
+    references = None
     if args.stage == "bench":
         check_gate(args.gate_dir, signature)
+        if strict_bench:
+            references = read_gate_references(args.gate_dir, prompt_ids)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
     output = Path(args.output or ROOT / "runs" / f"{args.stage}-{stamp}").expanduser().resolve()
     output.mkdir(parents=True, exist_ok=False)
     write_json(output / "configuration.json", cfg)
+    if references is not None:
+        write_json(output / "gate_reference.json", references)
     manifest = {"stage": args.stage, "status": "running", "started_utc": stamp,
-                "configuration_sha256": signature, "options": vars(args), "jobs": [],
+                "configuration_sha256": signature, "kernel_mode": kernel_mode(args),
+                "options": vars(args), "jobs": [],
                 "gate_dir": str(Path(args.gate_dir).resolve()) if args.gate_dir else None}
     write_json(output / "suite.json", manifest)
     print(f"Results: {output}", flush=True)
@@ -217,33 +251,48 @@ def suite(args, modes, prompts):
             if rc != 0:
                 raise RuntimeError(f"{mode} failed with exit {rc}; see {mode}.log")
             rows.extend(json.loads(line) for line in (output / f"{mode}.jsonl").read_text().splitlines())
-        comparison = compare_outputs(rows, modes, [p["id"] for p in prompts], args.repeats)
-        passed = comparison["all_equal"]
-        status = ("passed" if passed else "failed") if args.stage == "gate" else "complete"
+        comparison = compare_outputs(rows, modes, prompt_ids, args.repeats)
+        gate_comparison = (compare_outputs(rows, modes, prompt_ids, args.repeats, references=references)
+                           if references is not None else None)
+        passed = comparison["all_equal"] and (gate_comparison is None or gate_comparison["all_equal"])
+        if args.stage == "gate":
+            status = "passed" if passed else "failed"
+        else:
+            status = "failed" if strict_bench and not passed else "complete"
         summary = {"stage": args.stage, "status": status, "configuration_sha256": signature,
-                   "runtime_sha256": runtime,
-                   "output_comparison": comparison,
+                   "runtime_sha256": runtime, "kernel_mode": kernel_mode(args),
+                   "output_comparison": comparison, "gate_output_comparison": gate_comparison,
                    "performance": summarize(rows) if args.stage == "bench" else [],
                    "note": "Single-stream engine measurements, not serving throughput or population percentiles. "
                            "Gate uses consistent=True and is not a speed measurement or an independent HF oracle. "
-                           "Bench uses normal kernels; any output differences are recorded, not hidden."}
+                           "Consistent benchmarks require exact input/output equality within the benchmark and against "
+                           "the saved gate reference; failed runs retain timings for diagnosis. "
+                           "Normal benchmarks record output differences without claiming equivalence."}
         write_json(output / "summary.json", summary)
         if args.stage == "bench":
             with (output / "comparison.csv").open("w", newline="") as f:
                 fields = ("mode", "prompt_id", "measured_rounds", "decode_output_tok_s_median",
-                          "first_token_ms_median", "tpot_ms_median", "peak_allocated_GiB_median")
+                          "first_token_ms_median", "tpot_ms_median", "peak_allocated_GiB_median",
+                          "kernel_mode", "outputs_equal", "gate_outputs_equal")
                 writer = csv.DictWriter(f, fieldnames=fields)
                 writer.writeheader()
                 for r in summary["performance"]:
                     median = lambda key, scale=1: r[key]["median"] * scale if r[key] else None
-                    writer.writerow(dict(zip(fields, (r["mode"], r["prompt_id"], r["measured_rounds"],
+                    values = (r["mode"], r["prompt_id"], r["measured_rounds"],
                         median("decode_output_tok_s"), median("first_token_s", 1000), median("tpot_s", 1000),
-                        median("peak_allocated_bytes", 1 / 2**30)))))
+                        median("peak_allocated_bytes", 1 / 2**30), kernel_mode(args), comparison["all_equal"],
+                        gate_comparison["all_equal"] if gate_comparison is not None else None)
+                    writer.writerow(dict(zip(fields, values)))
         manifest["status"] = status
         if args.stage == "gate" and not passed:
             print("FAIL: greedy outputs differ; see summary.json. Benchmark is not authorized by this gate.", flush=True)
         elif args.stage == "gate":
             print("PASS: greedy outputs match across modes and measured rounds.", flush=True)
+        elif strict_bench and not passed:
+            print("FAIL: consistent benchmark outputs differ within this run or from the gate; "
+                  "timings are saved for diagnosis, not as equal-output performance results.", flush=True)
+        elif strict_bench:
+            print("PASS: consistent benchmark outputs match across modes, measured rounds and the saved gate.", flush=True)
         elif args.stage == "bench" and not passed:
             print("WARNING: normal-kernel outputs differ; inspect output_comparison before making claims.", flush=True)
         return 1 if status == "failed" else 0
@@ -266,6 +315,7 @@ def main(argv=None):
         prompts = read_prompts(args.prompts)
         if args.plan:
             print(json.dumps({"stage": args.stage, "modes": modes, "backend": args.backend,
+                              "kernel_mode": kernel_mode(args), "bench_kernels": args.bench_kernels,
                               "prompts": [p["id"] for p in prompts], "tokens_per_request": args.tokens,
                               "warmup": args.warmup, "repeats": args.repeats,
                               "measured_requests": len(modes) * len(prompts) * args.repeats,

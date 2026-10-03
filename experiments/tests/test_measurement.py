@@ -116,6 +116,26 @@ class ComparisonTests(unittest.TestCase):
         self.assertFalse(result["all_equal"])
         self.assertFalse(result["checks"][1]["same_input"])
 
+    def test_equal_benchmark_rows_can_still_differ_from_saved_gate(self):
+        rows = [row("graph", tokens=[1, 9, 3]), row("mtp", tokens=[1, 9, 3])]
+        self.assertTrue(compare_outputs(rows, ["graph", "mtp"], ["p"], 1)["all_equal"])
+        result = compare_outputs(rows, ["graph", "mtp"], ["p"], 1, references={"p": row()})
+        self.assertFalse(result["all_equal"])
+        self.assertTrue(all(c["first_difference"] == 1 for c in result["checks"]))
+
+    def test_saved_reference_checks_inputs_as_well_as_tokens(self):
+        reference = row()
+        reference["prompt_token_ids"] = [99]
+        result = compare_outputs([row()], ["graph"], ["p"], 1, references={"p": reference})
+        self.assertFalse(result["all_equal"])
+        self.assertFalse(result["checks"][0]["same_input"])
+        self.assertIsNone(result["checks"][0]["first_difference"])
+
+    def test_saved_reference_requires_exact_prompt_coverage(self):
+        for references in ({}, {"wrong": row()}, {"p": row(), "extra": row()}):
+            with self.subTest(references=references), self.assertRaisesRegex(ValueError, "cover exactly"):
+                compare_outputs([row()], ["graph"], ["p"], 1, references=references)
+
     def test_missing_extra_duplicate_and_empty_results_fail(self):
         for rows in ([], [row()], [row(), row(), row("mtp")],
                      [row(), row("mtp"), row("eager")]):

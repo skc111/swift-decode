@@ -2,6 +2,7 @@
 import os
 
 from .measurement import Step
+from .numerics import engine_options
 
 
 class Adapter:
@@ -24,9 +25,8 @@ class Adapter:
         cfg, weights, mtp_tensors = load_packed(args.model, backend=args.backend, with_mtp=mode == "mtp")
         self.tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=True, trust_remote_code=False)
         self.k = args.mtp_depth if mode == "mtp" else 7 if mode == "dflash" else 0
-        slots = gate_slots if args.stage == "gate" else self.k
-        self.engine = Engine(cfg, weights, max_len=args.max_len, max_spec=slots,
-                             consistent=args.stage == "gate",
+        self.execution_options = engine_options(args, self.k, gate_slots)
+        self.engine = Engine(cfg, weights, max_len=args.max_len, **self.execution_options,
                              kv_dtype=torch.bfloat16 if args.kv == "bf16" else torch.float8_e4m3fn)
         self.engine.sampling.set(temperature=0.0)
         self.stop_ids = {x for x in (*cfg.eos_ids, self.tokenizer.eos_token_id) if x is not None}

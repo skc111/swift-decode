@@ -1,4 +1,5 @@
 from contextlib import redirect_stderr, redirect_stdout
+import csv
 import io
 import json
 from pathlib import Path
@@ -11,6 +12,7 @@ from unittest.mock import Mock, patch
 
 from experiments import single_gpu as s
 from experiments.gpu import Adapter
+from experiments.numerics import engine_options, kernel_mode
 from experiments.provenance import object_hash
 
 
@@ -44,13 +46,42 @@ class CliTests(unittest.TestCase):
 
     def test_child_keeps_parameters_and_same_python(self):
         args = s.parser().parse_args(["--model", "/model", "--modes", "graph,dflash", "--draft-model", "/draft",
-                                      "--kv", "fp8", "--backend", "marlin", "--respect-eos"])
+                                      "--kv", "fp8", "--backend", "marlin", "--respect-eos",
+                                      "--bench-kernels", "consistent"])
         cmd = s.child_command(args, "dflash", Path("/output"))
         self.assertEqual(cmd[0], sys.executable)
         self.assertEqual(cmd[cmd.index("--worker-mode") + 1], "dflash")
         self.assertEqual(cmd[cmd.index("--draft-model") + 1], "/draft")
         self.assertIn("--respect-eos", cmd)
         self.assertEqual(cmd[cmd.index("--kv") + 1], "fp8")
+        self.assertEqual(cmd[cmd.index("--bench-kernels") + 1], "consistent")
+
+    def test_consistent_bench_plan_needs_no_gpu_and_states_its_policy(self):
+        with patch.dict(sys.modules, {"torch": None}), redirect_stdout(io.StringIO()) as stdout:
+            self.assertEqual(s.main(["--plan", "--stage", "bench", "--model", "/not-downloaded",
+                                     "--bench-kernels", "consistent"]), 0)
+        plan = json.loads(stdout.getvalue())
+        self.assertEqual(plan["kernel_mode"], "consistent")
+        self.assertEqual(plan["bench_kernels"], "consistent")
+        self.assertTrue(plan["requires_passing_gate"])
+
+    def test_configuration_binds_the_planned_benchmark_policy(self):
+        args = s.parser().parse_args(["--model", "/model"])
+        modes, prompts = ["graph", "mtp"], [{"id": "p", "text": "hello"}]
+        with patch.object(s, "source_fingerprint", return_value={}), \
+                patch.object(s, "checkpoint_manifest", return_value={"fake": True}):
+            normal = s.configuration(args, modes, prompts)
+            args.bench_kernels = "consistent"
+            gate = s.configuration(args, modes, prompts)
+            args.stage = "bench"
+            bench = s.configuration(args, modes, prompts)
+        self.assertEqual(gate, bench)
+        self.assertNotEqual(object_hash(normal), object_hash(bench))
+        with tempfile.TemporaryDirectory() as d:
+            s.write_json(Path(d) / "summary.json", {"stage": "gate", "status": "passed",
+                                                    "configuration_sha256": object_hash(normal)})
+            with self.assertRaisesRegex(ValueError, "configuration differs"):
+                s.check_gate(d, object_hash(bench))
 
     def test_prompt_ids_and_text_must_be_valid(self):
         with tempfile.TemporaryDirectory() as d:
@@ -111,6 +142,52 @@ class TokenAdapterTests(unittest.TestCase):
         self.assertEqual(a.encode("x"), [1, 2, 3])
 
 
+class NumericalPolicyTests(unittest.TestCase):
+    def test_consistent_bench_keeps_gate_kernels_and_slot_capacity_for_every_mode(self):
+        gate = SimpleNamespace(stage="gate", bench_kernels="consistent")
+        bench = SimpleNamespace(stage="bench", bench_kernels="consistent")
+        for mode, depth in (("eager", 0), ("graph", 0), ("mtp", 3), ("dflash", 7)):
+            with self.subTest(mode=mode):
+                expected = {"consistent": True, "max_spec": 7}
+                self.assertEqual(engine_options(gate, depth, 7), expected)
+                self.assertEqual(engine_options(bench, depth, 7), expected)
+
+    def test_normal_bench_keeps_the_original_per_mode_slot_allocation(self):
+        args = SimpleNamespace(stage="bench", bench_kernels="normal")
+        for depth in (0, 3, 7):
+            with self.subTest(depth=depth):
+                self.assertEqual(engine_options(args, depth, 7), {"consistent": False, "max_spec": depth})
+
+    def test_gate_always_uses_consistency_including_diagnostic_options(self):
+        for args in (SimpleNamespace(stage="gate", bench_kernels="normal"), SimpleNamespace(stage="gate")):
+            self.assertEqual(kernel_mode(args), "consistent")
+            self.assertEqual(engine_options(args, 0, 3), {"consistent": True, "max_spec": 3})
+
+
+class GateReferenceTests(unittest.TestCase):
+    def test_reads_only_reference_round_and_preserves_the_original_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "graph.jsonl"
+            warmup = {**record("graph"), "phase": "warmup", "token_ids": [99]}
+            path.write_text("\n".join(json.dumps(r) for r in (warmup, record("graph"), record("graph", 1))) + "\n")
+            original = path.read_bytes()
+            self.assertEqual(s.read_gate_references(d, ["p"]),
+                             {"p": {"prompt_token_ids": [11], "token_ids": [1, 2]}})
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_rejects_missing_duplicate_or_invalid_reference_rows(self):
+        cases = ([], [None], [record("graph"), record("graph")], [record("mtp")],
+                 [{**record("graph"), "prompt_id": "other"}],
+                 [{**record("graph"), "token_ids": []}],
+                 [{**record("graph"), "prompt_token_ids": [-1]}],
+                 [{**record("graph"), "token_ids": [True]}])
+        with tempfile.TemporaryDirectory() as d:
+            for rows in cases:
+                (Path(d) / "graph.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+                with self.subTest(rows=rows), self.assertRaises(ValueError):
+                    s.read_gate_references(d, ["p"])
+
+
 class SuiteTests(unittest.TestCase):
     """Fake workers exercise orchestration only; these are NOT GPU tests."""
     def setUp(self):
@@ -124,8 +201,9 @@ class SuiteTests(unittest.TestCase):
             p.start()
             self.addCleanup(p.stop)
 
-    def args(self, output, stage="gate", gate=None):
-        argv = ["--model", "/fake", "--output", str(self.root / output), "--repeats", "1", "--stage", stage]
+    def args(self, output, stage="gate", gate=None, bench_kernels="normal"):
+        argv = ["--model", "/fake", "--output", str(self.root / output), "--repeats", "1", "--stage", stage,
+                "--bench-kernels", bench_kernels]
         if gate:
             argv += ["--gate-dir", str(self.root / gate)]
         return s.parser().parse_args(argv)
@@ -191,6 +269,57 @@ class SuiteTests(unittest.TestCase):
         self.assertEqual(result["status"], "complete")
         self.assertFalse(result["output_comparison"]["all_equal"])
         self.assertEqual(len(result["performance"]), 3)
+        self.assertEqual(result["kernel_mode"], "normal")
+        self.assertIsNone(result["gate_output_comparison"])
+
+    def test_consistent_bench_keeps_reference_and_confirms_equal_outputs(self):
+        self.run_suite(self.args("gate", bench_kernels="consistent"))
+        gate_path = self.root / "gate/graph.jsonl"
+        original = gate_path.read_bytes()
+        self.assertEqual(self.run_suite(self.args("bench", "bench", "gate", "consistent")), 0)
+        result = json.loads((self.root / "bench/summary.json").read_text())
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["kernel_mode"], "consistent")
+        self.assertTrue(result["output_comparison"]["all_equal"])
+        self.assertTrue(result["gate_output_comparison"]["all_equal"])
+        self.assertEqual(json.loads((self.root / "bench/gate_reference.json").read_text()),
+                         {"p": {"prompt_token_ids": [11], "token_ids": [1, 2]}})
+        self.assertEqual(gate_path.read_bytes(), original)
+        with (self.root / "bench/comparison.csv").open() as f:
+            csv_rows = list(csv.DictReader(f))
+        self.assertEqual(len(csv_rows), 3)
+        self.assertTrue(all(r["kernel_mode"] == "consistent" and r["outputs_equal"] == "True"
+                            and r["gate_outputs_equal"] == "True" for r in csv_rows))
+
+    def test_consistent_bench_rejects_drift_even_when_all_bench_modes_agree(self):
+        self.run_suite(self.args("gate", bench_kernels="consistent"))
+        for all_modes in (False, True):
+            def changed(cmd, log, timeout):
+                self.fake_child(cmd, log, timeout)
+                mode = cmd[cmd.index("--worker-mode") + 1]
+                if all_modes or mode == "mtp":
+                    path = Path(cmd[cmd.index("--output") + 1]) / f"{mode}.jsonl"
+                    path.write_text(json.dumps({**record(mode), "token_ids": [1, 99]}) + "\n")
+                return 0
+            name = f"bench-drift-{all_modes}"
+            with self.subTest(all_modes=all_modes):
+                self.assertEqual(self.run_suite(self.args(name, "bench", "gate", "consistent"), changed), 1)
+                result = json.loads((self.root / name / "summary.json").read_text())
+                self.assertEqual(result["status"], "failed")
+                self.assertEqual(result["output_comparison"]["all_equal"], all_modes)
+                self.assertFalse(result["gate_output_comparison"]["all_equal"])
+                self.assertEqual(len(result["performance"]), 3)  # retained as diagnostic evidence
+                self.assertEqual(json.loads((self.root / name / "suite.json").read_text())["status"], "failed")
+                with (self.root / name / "comparison.csv").open() as f:
+                    self.assertTrue(all(r["gate_outputs_equal"] == "False" for r in csv.DictReader(f)))
+
+    def test_missing_gate_reference_blocks_consistent_bench_before_workers(self):
+        self.run_suite(self.args("gate", bench_kernels="consistent"))
+        (self.root / "gate/graph.jsonl").write_text("")
+        with self.assertRaisesRegex(ValueError, "references are incomplete"):
+            self.run_suite(self.args("bench", "bench", "gate", "consistent"),
+                           lambda *a: self.fail("worker must not start"))
+        self.assertFalse((self.root / "bench").exists())
 
     def test_existing_output_is_never_overwritten(self):
         (self.root / "existing").mkdir()

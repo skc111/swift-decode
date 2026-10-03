@@ -96,8 +96,8 @@ def summarize(rows):
     return result
 
 
-def compare_outputs(rows, modes, prompt_ids, repeats):
-    """Check completeness AND full output equality, including repeated rounds."""
+def compare_outputs(rows, modes, prompt_ids, repeats, *, references=None):
+    """Check every measured row against graph round 0 or saved per-prompt references."""
     selected = [r for r in rows if r["phase"] == "measure"]
     by_key = {}
     for row in selected:
@@ -110,8 +110,10 @@ def compare_outputs(rows, modes, prompt_ids, repeats):
         raise ValueError(f"incomplete results: missing={expected - set(by_key)}, extra={set(by_key) - expected}")
     checks = []
     reference_mode = "graph" if "graph" in modes else modes[0]
+    if references is not None and set(references) != set(prompt_ids):
+        raise ValueError("saved references do not cover exactly the experiment's prompts")
     for prompt in prompt_ids:
-        ref = by_key[(reference_mode, prompt, 0)]
+        ref = by_key[(reference_mode, prompt, 0)] if references is None else references[prompt]
         for mode in modes:
             for repeat in range(repeats):
                 row = by_key[(mode, prompt, repeat)]
