@@ -1,5 +1,9 @@
 # MTP gate 分叉诊断
 
+最新状态：`4720103` 上的 `gate-002` 已通过，`bench-001` 已完成；正常性能路径的 MTP
+仍存在输出分叉。首轮指标和结论见 [实验报告](../reports/rtx5090-2026-10-03/README.md)。
+下面按诊断顺序保留各阶段证据与当时结论。
+
 2026-10-03 用户反馈的云端 `runs/gate-001`：Triton、BF16 KV、MTP depth 3，
 eager 与 graph 的三条输入逐 token 相同，各模式三轮输出各自稳定。
 MTP 在英文、代码、中文输入的输出索引 20、61、69 首次分叉（索引从 0 开始）。
@@ -116,3 +120,20 @@ hidden、KV 有效前缀、live recurrent state、conv ring 和首 token 均逐�
 重放旧 gate 的诊断（源码校验会拒绝），也不能用旧 gate 授权新代码的 benchmark。
 `bench` 仍按既有协议关闭 `consistent` 并记录正常路径的输出差异；一致性 gate 通过
 不等于这些正常路径已获得逐 token 等价保证。
+
+## 云端重新验证与首轮 benchmark
+
+用户随后反馈云端已同步到 `4720103`，`runs/gate-002` 返回
+`PASS: greedy outputs match across modes and measured rounds.`。
+因此修正后的 `consistent=True` 在英文、代码、中文三条输入、每条三轮、128 个输出
+token 的完整生成上通过 eager / graph / MTP 路径一致性检查。
+
+随后 `runs/bench-001` 完成，并报告正常路径的输出差异：eager 与 graph 全部一致，
+MTP 在三条输入上的首次分叉索引仍分别为 20、61、69（从 0 开始）。正常路径关闭了
+`consistent`，其中 GDN 使用上游按 M 选择分块的设置，因此需要分别报告这两套路径的结果。
+本次 graph / eager 解码速度中位数之比约为 1.38，MTP / graph 约为 1.93–2.24；
+后者不具备逐 token 等价条件，不能直接称为无损加速。
+
+原始 benchmark 汇总已从用户粘贴文本提取到
+[bench-001.summary.json](../reports/rtx5090-2026-10-03/bench-001.summary.json)。
+完整原始 runs 仍在云端，独立 HF / BF16 模型正确性验证尚未执行。
