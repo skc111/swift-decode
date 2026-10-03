@@ -29,5 +29,30 @@ HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
 结果目录必须是新目录。诊断只读取原 gate，结果、环境和源码快照保存在独立目录。
 logits 拷到 CPU 会同步 GPU，因此此入口没有性能含义。引擎与算子实现仍来自 Token Rush。
 
-本地 CPU 测试只覆盖结果定位、验证行对齐和记录保护；诊断的 GPU 路径仍需云端执行。
+本地 CPU 测试只覆盖结果定位、验证行对齐和记录保护。
 即使在同一引擎中输出相同，也必须重新通过各模式独立进程的正式 gate，才能运行匹配的 bench。
+
+用户随后反馈 `runs/diagnose-mtp-001` 在英文输入上逐 token 重现原 gate 的两条输出，
+collector 与位置／slot 计数检查均通过。输出索引 20、verify row 1 处：graph 的
+` executed` / ` granted` logits 为 21.75 / 21.625，MTP target 则同为 21.625，
+argmax 选择了较小 token ID 的 ` granted`。这解释了选词变化，但没有定位算子根因，
+计数正确也不代表 KV 或 recurrent state 的数值内容已通过验证。
+
+保存的调优配置中，`lm_head` 的 `(N=248320, K=5120)` 在 M=1 时使用
+`BLOCK_N=64, BLOCK_K=256, num_stages=3`，M=4 时使用
+`BLOCK_N=64, BLOCK_K=512, num_stages=2`，两者均为 4 warps。
+尚不能据此断定该配置差异导致了本次分叉。
+
+`probe_mtp_head.py` 恢复这些已记录的自动调优选择，只重放到首次分叉，取出实际
+post-norm hidden。对每份冻结的 hidden 分别做单行、四行 head 投影，再只把四行
+head 的配置暂时设为单行配置复测。它同时比较 raw / MTP hidden 是否已不同，
+用于区分投影本身与更早计算的影响。临时缓存调整只在这个诊断进程中存在。
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+/root/venvs/swift-decode/bin/python -u -m experiments.probe_mtp_head \
+  --diagnosis-dir runs/diagnose-mtp-001 --output runs/probe-mtp-head-001
+```
+
+新探针的 CPU 测试覆盖调优记录恢复、临时配置恢复及分叉位置对齐；GPU 路径待云端执行。
+原 gate 仍失败，benchmark 仍未运行。
