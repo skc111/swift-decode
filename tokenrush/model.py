@@ -71,12 +71,13 @@ class ModelWeights:
 
 
 def gdn_forward(x: torch.Tensor, w: GDNWeights, cfg: ModelConfig, state: State, slot: int,
-                fused: bool = False) -> torch.Tensor:
+                fused: bool = False, *, BV=None) -> torch.Tensor:
+    """BV overrides the fused value-head tile; None retains the upstream M-dependent choice."""
     T = x.shape[0]
     qkvz = w.in_qkvz(x)                                                              # [T, conv_dim + val_dim]
     if fused and T <= state.n_slots:
         y = fused_k.gdn_step_fused(qkvz, x, w.in_ba, state.conv[slot], w.conv_w, w.A, w.dt_bias,
-                                   state.rec[:, slot], state.slot, w.norm_w, state.pos_t, cfg, cfg.eps)
+                                   state.rec[:, slot], state.slot, w.norm_w, state.pos_t, cfg, cfg.eps, BV=BV)
         return w.out.partials(y)                                                     # [S, T, hidden] fp32
     ba = F.linear(x, w.in_ba)                                                        # [T, 2*HV]
     qkv, z = torch.split(qkvz, [cfg.conv_dim, cfg.gdn_val_dim], dim=-1)
@@ -169,13 +170,16 @@ class Engine:
                  kv_dtype=torch.bfloat16, max_spec: int = 0, consistent: bool = False):
         """max_spec: the longest draft chain a verify step must hold (K); the recurrent
         state gets K+1 snapshot slots and the ring must exceed K+3 columns.
-        consistent: run single-token steps on the same M-row GEMV kernel the verify
-        step uses, so speculative and raw greedy output are bit-identical (raw decode
-        is ~9% slower on that kernel; without it the two agree except at bf16 near-ties)."""
+        consistent: use M-row GEMV even for one token and a whole GDN value head
+        at every M, reducing shape-dependent rounding between raw and speculative
+        decode. Full-model output equality still needs a gate on the actual workload."""
         self.cfg = cfg
         self.w = weights
         import tokenrush.quant as _q
         _q.ROWS_FOR_ONE = consistent
+        # The M>=4 split-head GDN path can differ from M=1 despite ROWS_FOR_ONE.
+        # Keep the norm fused into the same whole-head path for consistency runs.
+        self.gdn_bv = cfg.gdn_v_dim if consistent else None
         self.fused = fused            # Phase 2 fused kernels on the short (T <= 8) path
         self.device = torch.device(device)
         from .state import RING
@@ -225,7 +229,7 @@ class Engine:
                 x = x if h is None else x + h
                 n = ops.rmsnorm(x, lw.ln1, cfg.eps)
             if cfg.layer_types[li] == "linear_attention":
-                h = gdn_forward(n, lw.mixer, cfg, st, st.gdn_slot[li], fused)
+                h = gdn_forward(n, lw.mixer, cfg, st, st.gdn_slot[li], fused, BV=self.gdn_bv)
             else:
                 h = attn_forward(n, lw.mixer, cfg, st, st.attn_slot[li], self.cos, self.sin, bucket, fused)
             if fused:

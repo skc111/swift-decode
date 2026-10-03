@@ -242,6 +242,8 @@ def suite(args, modes, prompts):
         manifest["status"] = status
         if args.stage == "gate" and not passed:
             print("FAIL: greedy outputs differ; see summary.json. Benchmark is not authorized by this gate.", flush=True)
+        elif args.stage == "gate":
+            print("PASS: greedy outputs match across modes and measured rounds.", flush=True)
         elif args.stage == "bench" and not passed:
             print("WARNING: normal-kernel outputs differ; inspect output_comparison before making claims.", flush=True)
         return 1 if status == "failed" else 0

@@ -86,3 +86,33 @@ MTP 实际提交后的全部状态内容的检查，也不能单凭一个算子�
 
 本地 CPU 测试覆盖输入／输出行对齐、缓存干预及追踪 hook 的恢复；算子数值仍需云端验证。
 原 gate 仍失败，benchmark 仍未运行。
+
+## 相同状态追踪结果与一致性模式调整
+
+用户反馈 `runs/trace-verify-001` 在提交 `5a1c823` 上完成。raw / MTP prefill 后的
+hidden、KV 有效前缀、live recurrent state、conv ring 和首 token 均逐值一致。
+第一个 MTP block（位置 32，4 个输出行）就有浮点差异，但 argmax 仍一致：
+
+| 控制设置 | 1365 处观测中存在差异的数量 | hidden / logits 是否逐值相同 |
+|---|---:|---|
+| 原配置 | 1246 | 否 |
+| 仅 GDN `BV=128` | 0 | 是 |
+| 仅统一量化投影配置 | 1246 | 否 |
+| 同时使用两项设置 | 0 | 是 |
+
+原配置的最早观测差异是 `layer.0.gdn.output`，第 2 行（从 0 开始）6144 个值中有
+1 个不同，最大绝对差约 `2.98e-8`；整个 block 的最终 logits 最大绝对差为 0.125。
+不能把后续全部差异都归因于这个单值的传播，后面各 GDN 层也可能引入新的差异。
+这组控制实验表明，对该 block，统一 GDN 分块足以消除观察到的算子输出差异；
+完整生成和实际 speculative 提交路径仍需新 gate 验证。
+
+据此在 `Engine(consistent=True)` 中固定 fused GDN 的 `BV=cfg.gdn_v_dim`，并在
+图捕获前沿正常调用路径传入该设置。`consistent=False` 仍使用上游的按 M 选择分块，
+不变更 Triton 算子公式、自动调优缓存、greedy 选词或 gate 的逐 token 判定。
+这是一项基于上游实现的本地一致性模式修正，尚无新的完整模型通过结果。
+
+新结果使用 `runs/gate-002`，保持原模型、输入、Triton、BF16 KV、MTP depth 3 和
+128 token 设置。旧 gate 和诊断目录保留；引擎源码已经改变，因此不能在新代码上
+重放旧 gate 的诊断（源码校验会拒绝），也不能用旧 gate 授权新代码的 benchmark。
+`bench` 仍按既有协议关闭 `consistent` 并记录正常路径的输出差异；一致性 gate 通过
+不等于这些正常路径已获得逐 token 等价保证。
