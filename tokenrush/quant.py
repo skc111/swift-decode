@@ -14,6 +14,8 @@ import torch.nn.functional as F
 import triton
 import triton.language as tl
 
+from .backend import BACKENDS, select_backend
+
 GROUP = 128
 
 
@@ -263,12 +265,11 @@ def int4_gemm_rows(x, packed, scale, mn, split_k: int = 1):
 
 # --------------------------------------------------------------- QLinear
 
-BACKENDS = ("marlin", "triton", "tinygemm", "dequant")
-
-
 def _default_backend():
-    from . import marlin as _marlin
-    return "marlin" if _marlin.available() else "triton"
+    def probe_marlin():
+        from . import marlin as _marlin
+        return _marlin.available()
+    return select_backend(probe_marlin)
 
 
 DEFAULT_BACKEND = _default_backend()

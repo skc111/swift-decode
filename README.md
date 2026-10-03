@@ -1,3 +1,16 @@
+# Swift Decode
+
+本仓库基于 [Token Rush](https://github.com/zyhector/token-rush) 的 `b592bc6` 版本，
+先在自己的 RTX 5090 上复现单流推理，并对 eager、CUDA Graph、MTP 做统一口径的对照。
+
+新增入口与操作步骤见 **[单卡实验说明](experiments/README.md)**。
+目前新增评测代码已通过本地 CPU 测试，GPU 兼容性、输出一致性和速度仍待本机实测。
+引擎、算子与投机解码实现来自上游；不能把复现运行算作这些功能的原创实现。
+
+---
+
+以下保留上游 README。**下面的性能图表和原有 `results/` 均为原作者数据，不是 Swift Decode 的实测结果。**
+
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/img/logo_dark.png">

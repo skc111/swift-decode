@@ -5,3 +5,8 @@ __pycache__/
 .pytest_cache/
 tokenrush/csrc/build/
 .venv/
+
+# This fork's measurements and local downloads; upstream results/ stay tracked.
+/runs/
+/models/
+/.cache/
