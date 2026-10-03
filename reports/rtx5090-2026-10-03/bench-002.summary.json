@@ -1,0 +1,790 @@
+{
+  "stage": "bench",
+  "status": "complete",
+  "configuration_sha256": "3d7fd1c520deb412a7e396448f23f4b479c1f08bf99f978e2299a32e2b4fb8bc",
+  "runtime_sha256": "fd21c37ecb2eda5231e0f61427e6a1d42c2686c09194f2cd56de79dad1b947b6",
+  "kernel_mode": "consistent",
+  "output_comparison": {
+    "all_equal": true,
+    "reference": "graph",
+    "checks": [
+      {
+        "mode": "eager",
+        "prompt_id": "english",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "english",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "english",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "english",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "english",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "english",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "english",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "english",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "english",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "code",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "code",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "code",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "code",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "code",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "code",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "code",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "code",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "code",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "chinese",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "chinese",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "chinese",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "chinese",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "chinese",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "chinese",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "chinese",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "chinese",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "chinese",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      }
+    ]
+  },
+  "gate_output_comparison": {
+    "all_equal": true,
+    "reference": "graph",
+    "checks": [
+      {
+        "mode": "eager",
+        "prompt_id": "english",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "english",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "english",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "english",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "english",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "english",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "english",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "english",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "english",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "code",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "code",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "code",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "code",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "code",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "code",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "code",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "code",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "code",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "chinese",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "chinese",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "eager",
+        "prompt_id": "chinese",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "chinese",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "chinese",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "graph",
+        "prompt_id": "chinese",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "chinese",
+        "round": 0,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "chinese",
+        "round": 1,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      },
+      {
+        "mode": "mtp",
+        "prompt_id": "chinese",
+        "round": 2,
+        "same_input": true,
+        "first_difference": null,
+        "equal": true
+      }
+    ]
+  },
+  "performance": [
+    {
+      "mode": "eager",
+      "prompt_id": "chinese",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.38725175336003304,
+        "min": 0.38466604612767696,
+        "max": 0.3873786646872759
+      },
+      "decode_output_tok_s": {
+        "median": 53.66853266366359,
+        "min": 51.15758238415685,
+        "max": 68.3778452222187
+      },
+      "output_tok_s": {
+        "median": 46.484110707955715,
+        "min": 44.6429896199237,
+        "max": 57.02307306277518
+      },
+      "tpot_s": {
+        "median": 0.018632892504569114,
+        "min": 0.014624619959142264,
+        "max": 0.0195474444529203
+      },
+      "acceptance_rate": null,
+      "peak_allocated_bytes": {
+        "median": 17768971776,
+        "min": 17768971776,
+        "max": 17768971776
+      },
+      "peak_reserved_bytes": {
+        "median": 18205376512,
+        "min": 18205376512,
+        "max": 18205376512
+      }
+    },
+    {
+      "mode": "eager",
+      "prompt_id": "code",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.38477097637951374,
+        "min": 0.3702394403517246,
+        "max": 0.3852547872811556
+      },
+      "decode_output_tok_s": {
+        "median": 59.719528454056416,
+        "min": 50.92246799075727,
+        "max": 61.711939673394106
+      },
+      "output_tok_s": {
+        "median": 51.264655212877805,
+        "min": 44.46361160934147,
+        "max": 52.39023510794093
+      },
+      "tpot_s": {
+        "median": 0.01674494132634223,
+        "min": 0.01620431970364935,
+        "max": 0.019637697060981136
+      },
+      "acceptance_rate": null,
+      "peak_allocated_bytes": {
+        "median": 17769125376,
+        "min": 17769125376,
+        "max": 17769125376
+      },
+      "peak_reserved_bytes": {
+        "median": 18205376512,
+        "min": 18205376512,
+        "max": 18205376512
+      }
+    },
+    {
+      "mode": "eager",
+      "prompt_id": "english",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.369174562394619,
+        "min": 0.366480216383934,
+        "max": 0.375927796587348
+      },
+      "decode_output_tok_s": {
+        "median": 66.3684349419687,
+        "min": 63.841202626409846,
+        "max": 70.09224888830185
+      },
+      "output_tok_s": {
+        "median": 56.139354106731595,
+        "min": 54.11715967603905,
+        "max": 58.68672453900986
+      },
+      "tpot_s": {
+        "median": 0.015067403666733757,
+        "min": 0.01426691275940636,
+        "max": 0.01566386532302447
+      },
+      "acceptance_rate": null,
+      "peak_allocated_bytes": {
+        "median": 17768941056,
+        "min": 17768941056,
+        "max": 17768941056
+      },
+      "peak_reserved_bytes": {
+        "median": 18205376512,
+        "min": 18205376512,
+        "max": 18205376512
+      }
+    },
+    {
+      "mode": "graph",
+      "prompt_id": "chinese",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.3705483004450798,
+        "min": 0.3704890962690115,
+        "max": 0.38871610537171364
+      },
+      "decode_output_tok_s": {
+        "median": 88.8125247331735,
+        "min": 88.68358791597831,
+        "max": 88.90115817874769
+      },
+      "output_tok_s": {
+        "median": 71.09264336942383,
+        "min": 70.29978763113347,
+        "max": 71.14664024132776
+      },
+      "tpot_s": {
+        "median": 0.011259673148628295,
+        "min": 0.011248447382309306,
+        "max": 0.011276043555515957
+      },
+      "acceptance_rate": null,
+      "peak_allocated_bytes": {
+        "median": 17769469440,
+        "min": 17769469440,
+        "max": 17769469440
+      },
+      "peak_reserved_bytes": {
+        "median": 18209570816,
+        "min": 18209570816,
+        "max": 18209570816
+      }
+    },
+    {
+      "mode": "graph",
+      "prompt_id": "code",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.3714498020708561,
+        "min": 0.3707269784063101,
+        "max": 0.37645444460213184
+      },
+      "decode_output_tok_s": {
+        "median": 88.88459022925419,
+        "min": 88.81511324729681,
+        "max": 88.89581572591783
+      },
+      "output_tok_s": {
+        "median": 71.1076160665281,
+        "min": 70.85951033465884,
+        "max": 71.12904843514472
+      },
+      "tpot_s": {
+        "median": 0.01125054407542146,
+        "min": 0.011249123390500002,
+        "max": 0.011259344985752593
+      },
+      "acceptance_rate": null,
+      "peak_allocated_bytes": {
+        "median": 17769623040,
+        "min": 17769623040,
+        "max": 17769623040
+      },
+      "peak_reserved_bytes": {
+        "median": 18209570816,
+        "min": 18209570816,
+        "max": 18209570816
+      }
+    },
+    {
+      "mode": "graph",
+      "prompt_id": "english",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.38758289255201817,
+        "min": 0.3700897190719843,
+        "max": 0.3910298403352499
+      },
+      "decode_output_tok_s": {
+        "median": 88.87697575885927,
+        "min": 88.72413700170169,
+        "max": 88.88095616131204
+      },
+      "output_tok_s": {
+        "median": 70.46671608473297,
+        "min": 70.23578257749432,
+        "max": 71.14940412795193
+      },
+      "tpot_s": {
+        "median": 0.011251507957619944,
+        "min": 0.011251004075440834,
+        "max": 0.011270890129715438
+      },
+      "acceptance_rate": null,
+      "peak_allocated_bytes": {
+        "median": 17769438720,
+        "min": 17769438720,
+        "max": 17769438720
+      },
+      "peak_reserved_bytes": {
+        "median": 18209570816,
+        "min": 18209570816,
+        "max": 18209570816
+      }
+    },
+    {
+      "mode": "mtp",
+      "prompt_id": "chinese",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.38057901337742805,
+        "min": 0.3801665883511305,
+        "max": 0.40358410589396954
+      },
+      "decode_output_tok_s": {
+        "median": 188.30326899132078,
+        "min": 188.23281866600337,
+        "max": 188.4865045074764
+      },
+      "output_tok_s": {
+        "median": 121.32437377083433,
+        "min": 118.70751861559502,
+        "max": 121.44732411776056
+      },
+      "tpot_s": {
+        "median": 0.005310582261033884,
+        "min": 0.0053054196246731,
+        "max": 0.005312569864739583
+      },
+      "acceptance_rate": {
+        "median": 0.5306122448979592,
+        "min": 0.5306122448979592,
+        "max": 0.5306122448979592
+      },
+      "peak_allocated_bytes": {
+        "median": 18375383552,
+        "min": 18375383552,
+        "max": 18375383552
+      },
+      "peak_reserved_bytes": {
+        "median": 19006488576,
+        "min": 19006488576,
+        "max": 19006488576
+      }
+    },
+    {
+      "mode": "mtp",
+      "prompt_id": "code",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.3858210723847151,
+        "min": 0.38133152946829796,
+        "max": 0.4011816307902336
+      },
+      "decode_output_tok_s": {
+        "median": 200.56229017215034,
+        "min": 200.3532159315999,
+        "max": 200.70657797085875
+      },
+      "output_tok_s": {
+        "median": 125.60831638816049,
+        "min": 123.66407208818033,
+        "max": 126.2207864747417
+      },
+      "tpot_s": {
+        "median": 0.004985982156175328,
+        "min": 0.004982397737582837,
+        "max": 0.0049911851694030085
+      },
+      "acceptance_rate": {
+        "median": 0.6086956521739131,
+        "min": 0.6086956521739131,
+        "max": 0.6086956521739131
+      },
+      "peak_allocated_bytes": {
+        "median": 18375639552,
+        "min": 18375639552,
+        "max": 18375639552
+      },
+      "peak_reserved_bytes": {
+        "median": 19006488576,
+        "min": 19006488576,
+        "max": 19006488576
+      }
+    },
+    {
+      "mode": "mtp",
+      "prompt_id": "english",
+      "measured_rounds": 3,
+      "first_token_s": {
+        "median": 0.39465698041021824,
+        "min": 0.38962508365511894,
+        "max": 0.3977476488798857
+      },
+      "decode_output_tok_s": {
+        "median": 177.54296028197828,
+        "min": 177.13028600039107,
+        "max": 177.55141171166798
+      },
+      "output_tok_s": {
+        "median": 115.14484430417674,
+        "min": 114.9975203989617,
+        "max": 115.84644899516205
+      },
+      "tpot_s": {
+        "median": 0.005632439598910452,
+        "min": 0.00563217149534094,
+        "max": 0.005645561933986784
+      },
+      "acceptance_rate": {
+        "median": 0.48717948717948717,
+        "min": 0.48717948717948717,
+        "max": 0.48717948717948717
+      },
+      "peak_allocated_bytes": {
+        "median": 18375332352,
+        "min": 18375332352,
+        "max": 18375332352
+      },
+      "peak_reserved_bytes": {
+        "median": 19006488576,
+        "min": 19006488576,
+        "max": 19006488576
+      }
+    }
+  ],
+  "note": "Single-stream engine measurements, not serving throughput or population percentiles. Gate uses consistent=True and is not a speed measurement or an independent HF oracle. Consistent benchmarks require exact input/output equality within the benchmark and against the saved gate reference; failed runs retain timings for diagnosis. Normal benchmarks record output differences without claiming equivalence."
+}

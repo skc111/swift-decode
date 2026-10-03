@@ -1,8 +1,10 @@
 # MTP gate 分叉诊断
 
-最新状态：`4720103` 上的 `gate-002` 已通过，`bench-001` 已完成；正常性能路径的 MTP
-仍存在输出分叉。首轮指标和结论见 [实验报告](../reports/rtx5090-2026-10-03/README.md)。
-随后新增了 [输出一致的性能对照入口](CONSISTENT_BENCH.md)，新一轮云端结果待反馈。
+最新状态：`gate-003` 已通过，`bench-002` 使用一致性路径完成性能对照；三种模式的
+测量输出相互一致，且与保存的 gate 参考一致。MTP / graph 解码速度比为 2.00–2.26，
+详见 [等输出实测报告](../reports/rtx5090-2026-10-03/bench-002.md) 和
+[实验入口](CONSISTENT_BENCH.md)。正常路径 `bench-001` 的输出分叉仍按
+[首轮报告](../reports/rtx5090-2026-10-03/README.md) 保留。
 下面按诊断顺序保留各阶段证据与当时结论。
 
 2026-10-03 用户反馈的云端 `runs/gate-001`：Triton、BF16 KV、MTP depth 3，
@@ -138,3 +140,11 @@ MTP 在三条输入上的首次分叉索引仍分别为 20、61、69（从 0 开
 原始 benchmark 汇总已从用户粘贴文本提取到
 [bench-001.summary.json](../reports/rtx5090-2026-10-03/bench-001.summary.json)。
 完整原始 runs 仍在云端，独立 HF / BF16 模型正确性验证尚未执行。
+
+## 一致性路径的性能复测
+
+随后新增 `--bench-kernels consistent`，使 benchmark 与 gate 使用相同数值路径和
+target recurrent slot 数量，并将每条测量输出与保存的 gate 参考比较。
+用户反馈 `gate-003` 通过；`bench-002` 的内部比较和 gate 比较各 27 项全部通过，
+三条输入的 MTP 解码速度为 177.54、200.56、188.30 token/s（各三轮中位数）。
+这完成了本轮工作负载的等输出计时验证，没有扩大到独立精度或通用工作负载保证。
