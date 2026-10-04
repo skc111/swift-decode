@@ -1,12 +1,11 @@
 __pycache__/
-*.pyc
-__pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
 tokenrush/csrc/build/
 .venv/
 
-# This fork's measurements and local downloads; upstream results/ stay tracked.
+# Local measurements, historical-tool output and downloads stay out of Git.
 /runs/
+/results/
 /models/
 /.cache/

@@ -4,7 +4,7 @@
 测量输出相互一致，且与保存的 gate 参考一致。MTP / graph 解码速度比为 2.00–2.26，
 详见 [等输出实测报告](../reports/rtx5090-2026-10-03/bench-002.md) 和
 [实验入口](CONSISTENT_BENCH.md)。正常路径 `bench-001` 的输出分叉仍按
-[首轮报告](../reports/rtx5090-2026-10-03/README.md) 保留。
+[首轮报告](../reports/rtx5090-2026-10-03/bench-001.md) 保留。
 下面按诊断顺序保留各阶段证据与当时结论。
 
 2026-10-03 用户反馈的云端 `runs/gate-001`：Triton、BF16 KV、MTP depth 3，
