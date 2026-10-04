@@ -9,7 +9,8 @@
 输出逐 token 一致，MTP 解码速度为 CUDA Graph 的 2.00–2.26 倍。
 完整配置、波动与原始汇总见 **[本次实测报告](reports/rtx5090-2026-10-03/bench-002.md)**；
 复现这组结果使用 **[一致性 benchmark 步骤](experiments/CONSISTENT_BENCH.md)**。
-讲解从 **[面试笔记](reports/rtx5090-2026-10-03/INTERVIEW_NOTES.md)** 开始。
+系统学习见 **[项目详解与 40 个面试问题](docs/SWIFT_DECODE_GUIDE_ZH.md)**，
+快速复习见 **[面试笔记](reports/rtx5090-2026-10-03/INTERVIEW_NOTES.md)**。
 
 引擎、算子与投机解码实现来自上游。本仓库新增实验与诊断工具、GDN 一致性模式的
 局部修正和结果核验；上述一致性仅针对本轮工作负载，未执行独立 HF / BF16 精度验证。
