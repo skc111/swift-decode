@@ -9,7 +9,8 @@ MTP 的可重复对照；定位 MTP 输出分叉，修正一致性模式，最�
 条件下测得 MTP 相对 CUDA Graph 约 2.00–2.26 倍的解码速度。**
 
 本文集中讲解执行流程、状态管理、数值问题、实验口径，以及 40 个面试问题。
-快速复习可直接读第 11 节的介绍稿和第 12 节的问题；上游历史材料见 [来源索引](UPSTREAM.md)。
+快速复习可直接读第 11 节的介绍稿和第 12 节的问题；来源见 [项目首页](../README.md#实现来源)。
+讲解中的实测对应原运行版本，精简目录后新增实验仍需重新通过匹配源码的 gate。
 
 ## 阅读顺序
 
@@ -160,7 +161,7 @@ MTP 的 prefill 还会使用 target 的逐位置 hidden 初始化草稿头。
 
 在 [quant.py](../tokenrush/quant.py) 中，一个字节打包两个 INT4 code，低 4 bit 存前一个，
 高 4 bit 存后一个。scale 和 minimum 按输入维度分组，并与 packed weight 一起保存。
-格式说明还可参见仓库原有 [model card](model_card.md)。其中原作者的质量指标不属于
+格式说明还可参见 [上游 model card](https://github.com/zyhector/token-rush/blob/b592bc6d91f0ea925b6a0179cbe65d1362b96381/docs/model_card.md)。其中原作者的质量指标不属于
 本次复现实验。
 
 ### 3.2 Weight-only 的意思
@@ -849,9 +850,9 @@ group 越小，元数据占比通常越高，量化适应局部分布的能力�
 
 **Q07：GPTQ 和直接 round-to-nearest 有什么区别？你做了量化训练吗？**
 
-直接 RTN 主要按权重数值选量化格点。仓库的 GPTQ 使用校准输入累计相关矩阵，
+直接 RTN 主要按权重数值选量化格点。上游 GPTQ 使用校准输入累计相关矩阵，
 在逐列量化时补偿未量化列，目标与线性层在这些输入上的输出误差有关；可读
-[gptq_quantize](../tokenrush/gptq.py)。本次使用发布好的 GPTQ target checkpoint，未运行校准或训练。
+[上游 gptq_quantize](https://github.com/zyhector/token-rush/blob/b592bc6d91f0ea925b6a0179cbe65d1362b96381/tokenrush/gptq.py)。本次使用发布好的 GPTQ target checkpoint，未运行校准或训练。
 加载时对 MTP 部分线性层的 RTN 转换是另一件事。
 
 **Q08：Prefill 和 decode 的性能特征为什么不同？**

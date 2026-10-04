@@ -40,9 +40,8 @@ def main():
     ap.add_argument("--dflash-path", default=DFLASH_REPO, help="the DFlash2 draft: a Hub repo id or a local directory")
     ap.add_argument("--draft-vocab", default="128k",
                     help="the draft chain's lm_head rows: 'full'; '128k' (the first 131072 token ids, i.e. the "
-                         "tokenizer's BPE merge order, a language-neutral frequency proxy; default); a named list "
-                         "from tokenrush/draft_vocab/ ('en_64k', 'mix_64k', 'mix_96k': corpus-frequency lists, "
-                         "see docs/progress.md step 21); or a path to a saved id tensor")
+                         "tokenizer's BPE merge order, a language-neutral frequency proxy; default); "
+                         "or a path to a saved id tensor")
     ap.add_argument("--kv", default="bf16", choices=("bf16", "fp8"), help="KV cache dtype")
     ap.add_argument("--temperature", type=float, default=0.0, help="0 = greedy")
     ap.add_argument("--top-p", type=float, default=1.0)
@@ -77,13 +76,10 @@ def main():
         engine.capture()
         msg = f"captured the decode graph"
         if spec:
-            named = os.path.join(os.path.dirname(__file__), "draft_vocab", a.draft_vocab + ".pt")
             if a.draft_vocab == "full":
                 dv = None
             elif a.draft_vocab == "128k":
                 dv = torch.arange(131072)
-            elif os.path.exists(named):
-                dv = torch.load(named).long()
             else:
                 dv = torch.load(a.draft_vocab).long()
             if want_dflash:

@@ -28,12 +28,13 @@ Triton、BF16 KV、MTP depth 3；英文、代码、中文三条短输入，固�
 | 理解项目、准备面试 | [项目详解与 40 个面试问题](docs/SWIFT_DECODE_GUIDE_ZH.md) |
 | 复现已通过的 gate 和 benchmark | [一致性实验步骤](experiments/CONSISTENT_BENCH.md) |
 | 理解那次 MTP 输出分叉 | [诊断记录与修正依据](experiments/MTP_DIAGNOSTICS.md) |
-| 查看当前与历史结果 | [实验报告索引](reports/rtx5090-2026-10-03/) |
+| 对照首轮输出分叉 | [首轮实验记录](reports/rtx5090-2026-10-03/bench-001.md) |
 | 查环境与下载笔记 | [初次环境准备说明](experiments/README.md)；其中早期状态以本页及最新报告为准 |
-| 查上游设计与历史工具 | [上游来源索引](docs/UPSTREAM.md) |
 
 现有云端环境与模型已经准备完成。继续实验时沿用本地 checkpoint 和独立虚拟环境，
 使用新的结果目录，先 gate 再测匹配配置；无需因整理目录重新安装或下载。
+本次精简删除了离线量化工具，源码指纹已经变化，后续 benchmark 需要重新生成匹配的 gate。
+已保存的报告仍对应原测量版本。
 
 ## 目录
 
@@ -42,21 +43,22 @@ swift-decode/
 ├── tokenrush/       推理引擎、算子、状态、MTP 与可选服务实现
 ├── experiments/     当前单卡实验入口、诊断工具、协议说明和 CPU 测试
 ├── reports/         Swift Decode 实测报告与原始汇总
-├── docs/            项目详解、模型卡、上游来源索引
+├── docs/            项目详解与面试准备
 ├── tests/           引擎与协议测试
-├── scripts/env_check/  环境和小规模数值检查
-├── bench/           权重转换所需的格式读取器
-├── data/quality/    上游量化校准/评估 token 快照
+├── scripts/env_check/  现有环境说明引用的 check_stack.py
 ├── pyproject.toml   项目依赖
 └── uv.lock          已使用的依赖锁定版本
 ```
 
-本地 `runs/`、模型、下载缓存和生成产物不提交。已移出的上游历史日志、跑分工具、图表
-和旧开发说明仍可通过 [来源索引](docs/UPSTREAM.md) 查看固定版本。
+本地 `runs/`、模型、下载缓存和生成产物不提交。项目使用现成 INT4 checkpoint，
+离线量化／格式转换工具、校准语料和硬件跑分脚本已移除。草稿词表支持默认 `128k`、
+完整词表 `full` 或自备 token ID 文件，旧预制词表不再随仓库提供。
 
 ## 实现来源
 
 底层引擎、量化与投机解码实现来自 [Token Rush](https://github.com/zyhector/token-rush)，
 起点为 `b592bc6`。Swift Decode 新增实验框架、环境与源码记录、分叉诊断工具、
 GDN 一致性模式的局部修正，以及 gate/benchmark 的配对输出核验。
-上表仅引用本仓库实测；上游性能和质量数据由来源索引单独提供。
+上表仅引用本仓库实测。原作者的设计、量化质量与服务说明可查看
+[上游固定版本](https://github.com/zyhector/token-rush/tree/b592bc6d91f0ea925b6a0179cbe65d1362b96381)，
+精简前的文件保留在本仓库 Git 历史中。
